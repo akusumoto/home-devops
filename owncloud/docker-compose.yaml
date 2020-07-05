@@ -1,0 +1,39 @@
+version: '3.1'
+services:
+    owncloud:
+        image: owncloud
+        restart: always
+        ports:
+            - 8080:80    
+        volumes:
+            - owncloud:/var/www/html
+
+    mysql:
+        image: mariadb
+        restart: always
+        environment:
+            MYSQL_ROOT_PASSWORD: aktimecom
+        volumes:
+            - mysql:/var/lib/mysql
+
+volumes:
+    owncloud:
+        driver: local
+    mysql:
+        driver: local
+
+
+## 1. # mkdir owncloud mysql
+# 2. # docker-compose up -d
+# 3. access http://localhost:8080
+# 4. "Create an admin account"
+#      Username = admin
+#      Password = aktimecom
+# 5. select "Storage & database" -> "MySQL/MariaDB"
+#      Database use = root
+#      Database password = aktimecom
+#      Database name = owncloud
+#      localhost = mysql
+# 6. "Finish setup"
+#
+# You can log-in owncloud by "admin" / "aktimecom"
