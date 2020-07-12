@@ -1,0 +1,27 @@
+version: '3.7'
+services:
+  utorrent:
+    image: ekho/utorrent:latest
+    volumes:
+      - utorrent-settings:/utorrent/settings
+      - /data/utorrent:/data
+    environment:
+      UID: 1000
+      GID: 1000
+      #webui: ng
+      dir_autoload_delete: "true"
+      dir_active: /data/active
+      dir_completed: /data/completed
+    ports:
+      - 8080:8080
+      - 6881:6881
+      - 6881:6881/udp
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  utorrent-settings:
