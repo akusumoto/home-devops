@@ -1,12 +1,12 @@
 version: '3.1'
 services:
     owncloud:
-        image: owncloud
+        image: owncloud:10.0.2
         restart: always
         ports:
-            - 8080:80    
+            - 8081:80    
         volumes:
-            - owncloud:/var/www/html
+            - /data/owncloud/owncloud:/var/www/html
 
     mysql:
         image: mariadb
@@ -14,14 +14,25 @@ services:
         environment:
             MYSQL_ROOT_PASSWORD: aktimecom
         volumes:
-            - mysql:/var/lib/mysql
+            - /data/owncloud/mysql:/var/lib/mysql
 
+              #volumes:
+              #    owncloud:
+              #        driver: local
+              #    mysql:
+              #        driver: local
+
+    proxy:
+        image: proxy
+        restart: always
+        ports:
+            - 80:80    
+            - 443:443  
+        volumes:
+            - letsencrypt:/etc/letsencrypt
+            - /data/proxy/letsencrypt:/default/letsencrypt
 volumes:
-    owncloud:
-        driver: local
-    mysql:
-        driver: local
-
+    letsencrypt:
 
 ## 1. # mkdir owncloud mysql
 # 2. # docker-compose up -d
