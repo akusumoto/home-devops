@@ -1,4 +1,4 @@
-version: '3.1'
+version: '3.7'
 services:
     owncloud:
         image: ak/owncloud:0.1
@@ -27,6 +27,26 @@ services:
         volumes:
             - letsencrypt:/etc/letsencrypt
             - /data/proxy/letsencrypt:/default/letsencrypt
+
+    utorrent:
+        image: ekho/utorrent:latest
+        restart: always
+        ports:
+            - 8080:8080
+            - 6881:6881
+            - 6881:6881/udp
+        volumes:
+            - utorrent-settings:/utorrent/settings
+            - /data/utorrent:/data
+            - xtorage:/xtorage
+        environment:
+            UID: 1000
+            GID: 1000
+            #webui: ng
+            dir_autoload_delete: "true"
+            dir_active: /data/active
+            dir_completed: /xtorage/torrent
+
 volumes:
     letsencrypt:
     storage:
@@ -39,6 +59,7 @@ volumes:
             type: nfs
             o: "addr=192.168.0.5,hard,rw,nolock"
             device: ":/s2/xtorage"
+    utorrent-settings:
 
 ## 1. # mkdir owncloud mysql
 # 2. # docker-compose up -d
@@ -54,3 +75,12 @@ volumes:
 # 6. "Finish setup"
 #
 # You can log-in owncloud by "admin" / "aktimecom"
+
+
+## utorrent
+# 1. $ sudo mkdir -p /data/utorrent/{active,download}
+# 2. $ sudo chown -R kusumoto /data/utorrent
+#       kusumoto uid = 1000 gid = 1000
+# 3. $ sudo docker-compose up -d
+# 4. access http://(server):8080/gui
+#    --> admin / (no pass)
