@@ -1,12 +1,14 @@
 version: '3.1'
 services:
     owncloud:
-        image: owncloud:10.0.2
+        image: ak/owncloud:0.1
         restart: always
         ports:
             - 8081:80    
         volumes:
-            - /data/owncloud/owncloud:/var/www/html
+            - /data/owncloud/data:/data
+            - storage:/data/kusumoto/files/storage
+            - xtorage:/data/kusumoto/files/xtorage
 
     mysql:
         image: mariadb
@@ -16,14 +18,8 @@ services:
         volumes:
             - /data/owncloud/mysql:/var/lib/mysql
 
-              #volumes:
-              #    owncloud:
-              #        driver: local
-              #    mysql:
-              #        driver: local
-
     proxy:
-        image: proxy
+        image: ak/proxy:0.1
         restart: always
         ports:
             - 80:80    
@@ -33,6 +29,16 @@ services:
             - /data/proxy/letsencrypt:/default/letsencrypt
 volumes:
     letsencrypt:
+    storage:
+        driver_opts:
+            type: nfs
+            o: "addr=192.168.0.3,hard,rw,nolock"
+            device: ":/s1/storage"
+    xtorage:
+        driver_opts:
+            type: nfs
+            o: "addr=192.168.0.5,hard,rw,nolock"
+            device: ":/s2/xtorage"
 
 ## 1. # mkdir owncloud mysql
 # 2. # docker-compose up -d
