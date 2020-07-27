@@ -14,6 +14,8 @@ RUN apt-get update \
  && touch /var/log/cron.log
 
 #COPY letsencrypt /tmp/letsencrypt
+COPY nginx.conf /etc/nginx/nginx.conf
+COPY default.conf /etc/nginx/conf.d/default.conf
 COPY akusumoto.conf /etc/nginx/conf.d/akusumoto.conf
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 
