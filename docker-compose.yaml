@@ -1,8 +1,10 @@
 version: '3.7'
 services:
     owncloud:
-        image: ak/owncloud:0.1
+        image: ak/owncloud:latest
         restart: always
+        environment:
+            TZ: Asia/Tokyo
         ports:
             - 8081:80    
         volumes:
@@ -14,13 +16,16 @@ services:
         image: mariadb
         restart: always
         environment:
+            TZ: Asia/Tokyo
             MYSQL_ROOT_PASSWORD: aktimecom
         volumes:
             - /data/owncloud/mysql:/var/lib/mysql
 
     proxy:
-        image: ak/proxy:0.1
+        image: ak/proxy:latest
         restart: always
+        environment:
+            TZ: Asia/Tokyo
         ports:
             - 80:80    
             - 443:443  
@@ -40,6 +45,7 @@ services:
             - /data/utorrent:/data
             - xtorage:/xtorage
         environment:
+            TZ: Asia/Tokyo
             UID: 1000
             GID: 1000
             #webui: ng
