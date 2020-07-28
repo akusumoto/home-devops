@@ -17,6 +17,7 @@ RUN apt-get update \
 COPY nginx.conf /etc/nginx/nginx.conf
 COPY default.conf /etc/nginx/conf.d/default.conf
 COPY akusumoto.conf /etc/nginx/conf.d/akusumoto.conf
+COPY robots.txt /etc/nginx/html/robots.txt
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 
 ENV LANG C.UTF-8
