@@ -53,6 +53,20 @@ services:
             dir_active: /data/active
             dir_completed: /xtorage/torrent
 
+    backup-cron:
+        image: ak/backup-cron:latest
+        environment:
+            TZ: Asia/Tokyo
+        volumes:
+            - storage:/data/storage
+            - xtorage:/data/xtorage
+            - letsencrypt:/data/letsencrypt
+            - /data/owncloud/data:/data/owncloud/data
+            - /data/owncloud/mysql:/data/owncloud/mysql
+            - backup:/backup/backup
+            - /data/proxy/letsencrypt:/backup/letsencrypt
+                    
+
 volumes:
     letsencrypt:
     storage:
@@ -65,6 +79,11 @@ volumes:
             type: nfs
             o: "addr=192.168.0.5,hard,rw,nolock"
             device: ":/s2/xtorage"
+    backup:
+        driver_opts:
+            type: nfs
+            o: "addr=192.168.0.5,hard,rw,nolock"
+            device: ":/s1/backup"
     utorrent-settings:
 
 ## 1. # mkdir owncloud mysql
