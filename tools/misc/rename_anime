@@ -1,0 +1,215 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import os
+import sys
+
+import sqlite3
+class Db:
+	def __init__(self, db):
+		self._db = db
+		self._con = con = sqlite3.connect(db)
+		self._con.row_factory = sqlite3.Row
+
+	def close(self):
+		self._con.commit()
+		self._con.close() 
+
+class TitleMap(Db):
+	def __init__(self):
+		Db.__init__(self, "/var/cache/anime/tmap/titlemap.db")
+		if self.check_table("titlemap") == False:
+			self.init_table()	
+
+	def check_table(self, table):
+		cursor = self._con.execute("SELECT count(*) FROM sqlite_master WHERE type='table' AND name='%s'" % table)
+		row = cursor.fetchone()
+		if row["count(*)"] == 0:
+			self.init_table()
+
+		
+	def init_table(self):
+		self._con.execute("CREATE TABLE titlemap (source TEXT PRIMARY KEY, target TEXT)")
+
+	def get(self, source):
+		source = source.replace("'", "''")
+		cursor = self._con.execute("SELECT * FROM titlemap WHERE source = '%s'" % source)
+		row = cursor.fetchone()
+		try:
+			return row["target"]
+		except TypeError:
+			return None
+		
+	def add(self, source, target):
+		source = source.replace("'", "''")
+		target = target.replace("'", "''")
+		source = unicode(source, "utf-8")
+		self._con.execute("INSERT INTO titlemap (source, target) VALUES ('%s', '%s')" % (source, target))
+
+
+import re
+def parse_fname(fname):
+	try:
+		match = re.search(r'^\[.+\] (.+) - ([\d\.]+) .+\.([^\.]+)$', fname) 
+		if match is not None:
+			ret = {"file": match.group(0),
+				   "anime": match.group(1),
+				   "ep": match.group(2),
+				   "ext": match.group(3)}
+			return ret
+
+		match = re.search(r'^\[.+\] (.+) #([\d\.]+) .+\.([^\.]+)$', fname) 
+		if match is not None:
+			ret = {"file": match.group(0),
+				   "anime": match.group(1),
+				   "ep": match.group(2),
+				   "ext": match.group(3)}
+			return ret
+
+		match = re.search(r'^\[.+\] (.+) ([\d\.]+) .+\.([^\.]+)$', fname) 
+		if match is not None:
+			ret = {"file": match.group(0),
+				   "anime": match.group(1),
+				   "ep": match.group(2),
+				   "ext": match.group(3)}
+			return ret
+
+		match = re.search(r'^(.+) - ([\d\.]+).+\.([^\.]+)$', fname) 
+		if match is not None:
+			ret = {"file": match.group(0),
+				   "anime": match.group(1),
+				   "ep": match.group(2),
+				   "ext": match.group(3)}
+			return ret
+	except:
+		pass
+
+	return None
+
+from xml.etree.ElementTree import *
+class AnimeDb:
+	def __init__(self, xml):
+		self._xml = xml
+		self._root = self.parse_xml(xml)
+
+	def parse_xml(self, xml):
+		tree = parse(xml)
+		return tree.getroot()
+
+	def get_anime_by_title_ep(self, title, ep):
+		for e in self._root.findall(".//anime"):
+			e_title = e.find("title").text
+			e_ep = e.find("episode").text
+			if title == e_title and ep == e_ep:
+				anime = {"title": e_title,
+						 "ep": e_ep,
+						 "subtitle": e.find("subtitle").text,
+						 "path": e.find("path").text,
+						 "md5sum": e.find("md5sum").text}
+				#print "DEBUG: title=%s ep=%s subtitle=%s" % (e_title, e_ep, e.find("subtitle").text)
+				return anime
+
+		return None
+				
+	def get_anime_by_title_ep_ext(self, title, ep, ext):
+		for e in self._root.findall(".//anime"):
+			e_title = e.find("title").text
+			e_ep = e.find("episode").text
+			e_path = e.find("path").text
+			e_base, e_ext = os.path.splitext(e_path)
+			if title == e_title and ep == e_ep and "." + ext == e_ext:
+				anime = {"title": e_title,
+						 "ep": e_ep,
+						 "subtitle": e.find("subtitle").text,
+						 "path": e.find("path").text,
+						 "md5sum": e.find("md5sum").text}
+				#print "DEBUG: title=%s ep=%s subtitle=%s" % (e_title, e_ep, e.find("subtitle").text)
+				return anime
+
+		return None
+				
+
+
+import shutil
+import argparse
+if __name__ == "__main__":
+	argparser = argparse.ArgumentParser(description='Anime file renamer')
+	argparser.add_argument("-c", dest="check", action="store_true", default=False, help="check mode (default: False)")
+	argparser.add_argument("files", nargs="+", default=[], help="anime file")
+	args = argparser.parse_args()
+
+	tmap = TitleMap()
+	animedb = AnimeDb("/home/apache2/php/xml/anime.xml")
+
+	for fpath in args.files: #sys.argv[1:]:
+		if os.path.exists(fpath) == False:
+			print >> sys.stderr, "'%s' is not found" % fpath
+			continue
+
+		if os.path.isfile(fpath) == False:
+			print >> sys.stderr, "'%s' is not file" % fpath
+			continue
+
+		dname = os.path.dirname(fpath)
+		fname = os.path.basename(fpath)
+
+		# parse file name
+		param = parse_fname(fname)
+		if param is None:
+			print >> sys.stderr, "unknown filename format: %s" % fname
+			continue
+
+		# get anime title from title map
+		anime = None
+		anime = tmap.get(param["anime"])
+		if anime is None:
+			new_anime = raw_input("%s => " % param["anime"])
+			if len(new_anime) == 0: 
+				print "(SKIP) %s" % unicode(fpath, "utf-8")
+				continue
+			new_anime = unicode(new_anime.strip(), "utf-8")
+			tmap.add(param["anime"], new_anime)
+			anime = new_anime
+
+		# check anime database (xml)
+		anime_data = None
+		anime_data = animedb.get_anime_by_title_ep_ext(anime, param["ep"], param["ext"])
+
+		# rename anime
+		if anime_data is None:
+			new_fname = u"%s 第%s話 「%s」.%s" % (anime, param["ep"], "", param["ext"])
+			if len(dname) > 0:
+				new_fpath = dname + "/" + new_fname
+			else:
+				new_fpath = new_fname
+				
+			if os.path.exists(new_fpath) == True:
+				print "%s is already exists" % new_fpath
+				continue		
+
+			if args.check == False:
+				print "[MOVE](NEW) %s => %s" % (unicode(fpath, "utf-8"), new_fpath)
+				shutil.move(fpath, new_fpath)	
+			else:
+				print "(NEW) %s => %s" % (unicode(fpath, "utf-8"), new_fpath)
+
+		else:
+			if os.path.exists(anime_data["path"]) == True:
+				print "%s => %s (already exist)" % (fpath, anime_data["path"])
+				continue
+
+			if args.check == False: 
+				target_dname = os.path.dirname(anime_data["path"])
+				if os.path.exists(target_dname) == False:
+					shutil.os.makedirs(target_dname)
+				print "[MOVE] %s => %s" % (unicode(fpath, "utf-8"), anime_data["path"])
+				shutil.move(fpath, anime_data["path"])
+			else:
+				print "%s =>" % (fpath),
+				print "%s" % (anime_data["path"])
+				#print "%s => %s" % (fpath, anime_data["path"])
+
+	tmap.close()
+			
+
+

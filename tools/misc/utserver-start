@@ -1,0 +1,14 @@
+#!/bin/sh
+
+# settings
+#  ln -s /opt/utorrent-server-alpha-v3_3 /opt/utorrent-server  
+#  ln -s /opt/utorrent-server/utserver /usr/bin/utserver
+#  chmod 777 /opt/utorrent-server-alpha-v3_3
+#  mkdir /opt/utorrent-server/tmp
+#  chmod 777 /opt/utorrent-server/tmp
+#
+# downloading: /opt/utorrnet-server/tmp
+# downloaded : /storage/torrent
+
+cd /opt/utorrent-server/
+/opt/utorrent-server/utserver -settingspath /opt/utorrent-server/ -daemon
