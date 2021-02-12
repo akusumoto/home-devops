@@ -1,0 +1,29 @@
+version: '3.7'
+services:
+    ipfs:
+        image: ak/ipfs
+        restart: always
+        ports:
+            - 4471:4471  
+            - 5001:5001  
+            - 8080:8080  
+            - 8081:8081
+        volumes:
+            - storage:/storage
+            - xtorage:/xtorage
+
+volumes:
+    storage:
+        driver_opts:
+            type: nfs
+            o: "addr=192.168.11.102,hard,rw,nolock"
+            device: ":/s1/storage"
+    xtorage:
+        driver_opts:
+            type: nfs
+            o: "addr=192.168.11.103,hard,rw,nolock"
+            device: ":/s2/xtorage"
+
+# 1. $ sudo docker-compose up -d
+# 4. access http://(server):8080/gui
+#    --> admin / (no pass)
