@@ -1,0 +1,151 @@
+#!/usr/bin/perl -w
+# ./rename.pl -e -f data_file file1 file2 ...
+#
+# [data_file]
+# title
+# 01 subtitle1
+# 02 subtitle2
+#  :
+#
+
+use strict;
+use warnings;
+use Getopt::Long;
+
+#if( $#ARGV < 1 ) { exit; }
+
+my $exec = 0;
+my $datafile = "";
+my $language = 'ja';
+
+GetOptions( 'file=s' => \$datafile,
+            'exec'   => \$exec,
+            'language=s' => \$language );
+
+if( length( $datafile ) == 0 ) {
+    $datafile = "t.txt";
+}
+if( ! -f $datafile ) {
+    print "$datafile is not found\n";
+    exit;
+}
+
+# file list
+print "load files ... ";
+my @tmp_files = ();
+if($#ARGV > 0){
+    foreach my $arg(@ARGV) {
+        push(@tmp_files, $arg);
+    }
+}
+else{
+    foreach my $f(glob "*.mp4 *.mkv") {
+        if(-f $f){
+            push(@tmp_files, $f);
+        }
+    }
+}
+my @files = sort @tmp_files;
+my $n_files = $#files + 1;
+print "$n_files files\n";
+
+
+# load data file
+print "load episode list from $datafile ... ";
+open my $fd, "< $datafile";
+my $title = readline( $fd );
+$title =~ s/[\n\r]//g;
+my @episodes = ();
+my @subtitles = ();
+
+while( my $line = readline( $fd ) ) {
+    if( $line =~ /^(\d+) (.+)$/ ) {
+        my $ep  = $1;
+        my $sub = $2;
+        $ep  =~ s/^\s*(.+)\s*$/$1/g;
+        $sub =~ s/^\s*(.+)\s*$/$1/g;
+        $sub =~ s/[\n\r]//g;
+
+
+        push( @episodes , $ep  );
+        push( @subtitles, $sub );
+    }
+}
+
+close $fd;
+my $n_episodes = $#episodes + 1;
+print "$n_episodes episodes\n";
+
+
+#
+# check each episode
+#
+my @orgfiles = ();
+my @newfiles = ();
+
+for( my $j = 0; $j <= $#episodes; $j++ ) {
+    my $episode = sprintf( "%02d", $episodes[$j] );
+
+    for( my $i = 0; $i <= $#files; $i++ ) {
+        my $file = $files[$i];
+        if( $file =~ /$episode/i ) {
+            my $sub = $subtitles[$j];
+            my $ext = "avi";
+            if( $file =~ /\.([^\.]+)$/ ) {
+                $ext = $1;
+            }
+            my $newfile;
+            if( $language eq 'en' ) {
+                $newfile = "$title - ${episode} $sub.$ext";
+            } else { # 'ja'
+                $newfile = "$title 第${episode}話 「$sub」.$ext";
+            }
+
+            push @orgfiles, $file;
+            push @newfiles, $newfile;
+
+            splice @files, $i, 1;
+            last;
+        }
+    }
+}
+
+for( my $i = 0; $i <= $#orgfiles; $i++ ) {
+    my $orgfile = $orgfiles[$i];
+    my $newfile = $newfiles[$i];
+    $newfile =~ s/'/\'/g;
+    $newfile =~ s/!/\!/g;
+    $newfile =~ s/\?/？/g;
+
+    if( -f $newfile ) {
+        print "$newfile is alread exist\n";
+        next;
+    }
+
+    print "'$orgfile' -> '$newfile'\n";
+    if( $exec ) {
+        rename $orgfile, $newfile;
+    }
+}
+
+exit
+
+
+# rename files
+#for( my $i = 0; $i <= $#files; $i++ ) {
+#    my $ep  = sprintf( "%02d", $episodes[$i] );
+#    my $sub = $subtitles[$i];
+#    my $file = $files[$i];
+#    my $ext  = "avi";
+#    if( $file =~ /\.([^\.]+)$/ ) {
+#        $ext = $1;
+#    }
+#
+#    my $newfile = "$title 第${ep}話 「$sub」.$ext";
+#
+#    print "'$file' -> '$newfile'\n";
+#
+#    if( $exec ) {
+#        rename $file, $newfile;
+#    }
+#}
